@@ -6,9 +6,15 @@ import java.util.ArrayList; // Todoの一覧を入れるための機能を読み
 import java.util.List; // Todoの一覧を扱うための機能を読み込みます
 
 public class App { // Appという名前のプログラムを定義します
+    static List<Todo> todos = new ArrayList<>(); // ★変更
+    static int nextId = 1; // ★変更
+
     public static void main(String[] args) throws Exception { // プログラムの開始位置です
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0); // 8080番ポートでサーバーを用意します
-        List<String> todos = new ArrayList<>();// Todoをためておく一覧を一度だけ作ります
+        todos.add(new Todo(nextId++, "牛乳を買う")); // ★変更
+        Todo egg = new Todo(nextId++, "卵を買う"); // ★変更
+        egg.setDone(true); // ★変更
+        todos.add(egg); // ★変更
         server.createContext("/", exchange -> { // "/"へのアクセスに返事をする処理を登録します
             String path = exchange.getRequestURI().getPath(); // アクセスされたパスを取り出します
             String method = exchange.getRequestMethod(); // GETかPOSTかという送信方法を取り出します
@@ -17,9 +23,10 @@ public class App { // Appという名前のプログラムを定義します
             if (path.equals("/add") && method.equals("POST")) { // /addへのPOSTならTodoを追加します
                 String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8); // 送られてきた中身を受け取ります
                 String value = body.substring(5); // todo=の5文字を除きます
-                String todo = URLDecoder.decode(value, StandardCharsets.UTF_8); // 日本語を元に戻します
-                if (!todo.isEmpty()) { // 空の入力でないかを確認します
-                    todos.add(todo); // Todoを一覧に追加します
+                String title = URLDecoder.decode(value, StandardCharsets.UTF_8); // ★変更
+                if (!title.isEmpty()) { // ★変更
+                    todos.add(new Todo(nextId, title)); // ★変更
+                    nextId++; // ★変更
                 } // 空の入力の確認を終えます
                 exchange.getResponseHeaders().set("Location", "/"); // 戻る先を/にします
                 exchange.sendResponseHeaders(303, -1); // /へ戻す返事を送ります
@@ -28,24 +35,18 @@ public class App { // Appという名前のプログラムを定義します
             } else if (path.equals("/")) { // /ならフォームとTodo一覧を表示します
                 String html = "<form method='post' action='/add'><input name='todo'><button>追加</button></form>"; // Todoを入力して送るフォームを用意します
                 html += "<ul>"; // HTMLのリストの始まりを用意します
-                for (String todo : todos) { // Todoを1件ずつ取り出します
-                    html += "<li>" + todo + "</li>"; // Todoをリストの項目にします
+                for (Todo todo : todos) { // ★変更
+                    String mark = ""; // ★変更
+                    if (todo.isDone()) { // ★変更
+                        mark = " ✔"; // ★変更
+                    } // ★変更
+                    html += "<li>" + todo.getTitle() + mark + "</li>"; // ★変更
                 } // Todoを1件ずつ表示する処理を終えます
                 html += "</ul>"; // HTMLのリストを閉じます
                 message = html; // 組み立てたHTMLを返す内容にします
                 exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8"); // 返す形式をHTMLにします
-            } else if (path.equals("/hello")) { // パスが /hello か比べます
-                String query = exchange.getRequestURI().getRawQuery(); // クエリ文字列を取り出す
-                String name = "ゲスト";
-                if (query != null) {
-                    name = java.net.URLDecoder.decode(query.substring(5), java.nio.charset.StandardCharsets.UTF_8); // URLの文字を元に戻す
-                } // すべてのTodoをリストの項目にします
-                message = "こんにちは、" + name + "さん！"; // 名前を応答に混ぜる
-                System.out.println("query = " + query);
-            } else if (path.equals("/bye")) {
-                message = "さようなら！";
-            } else {
-                message = "ページが見つかりません";
+            } else { // ★変更
+                message = "ページが見つかりません"; // ★変更
             }
             byte[] body = message.getBytes("UTF-8"); // 返す文字をUTF-8のデータにします
             exchange.sendResponseHeaders(200, body.length); // 正常な返事を送る準備をします
@@ -56,3 +57,31 @@ public class App { // Appという名前のプログラムを定義します
         System.out.println("サーバー起動: http://localhost:8080 （止めるときは Ctrl+C）"); // 起動メッセージを表示します
     } // mainメソッドを終えます
 } // Appクラスを終えます
+
+class Todo { // ★変更
+    private final int id; // ★変更
+    private final String title; // ★変更
+    private boolean done; // ★変更
+
+    Todo(int id, String title) { // ★変更
+        this.id = id; // ★変更
+        this.title = title; // ★変更
+        this.done = false; // ★変更
+    } // ★変更
+
+    int getId() { // ★変更
+        return id; // ★変更
+    } // ★変更
+
+    String getTitle() { // ★変更
+        return title; // ★変更
+    } // ★変更
+
+    boolean isDone() { // ★変更
+        return done; // ★変更
+    } // ★変更
+
+    void setDone(boolean done) { // ★変更
+        this.done = done; // ★変更
+    } // ★変更
+} // ★変更
