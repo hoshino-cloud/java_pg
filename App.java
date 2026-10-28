@@ -22,24 +22,6 @@ public class App { // ★
         Class.forName("org.sqlite.JDBC");
         createTable(); // ★
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0); // ★
-        server.createContext("/api/todos", exchange -> { // Todo一覧APIの入口を追加します
-            if (!"GET".equals(exchange.getRequestMethod())) { // GET以外のリクエストを判定します
-                send(exchange, 405, "text/plain; charset=UTF-8", "Method Not Allowed"); // 許可されないメソッドを返します
-                return; // このリクエストの処理を終了します
-            } // GET以外の処理をここで終えます
-            try { // データベース例外を処理するために開始します
-                StringBuilder json = new StringBuilder("["); // JSON配列の組み立てを開始します
-                for (Todo todo : findAll()) { // 全Todoを順番に処理します
-                    if (json.length() > 1) json.append(","); // 2件目以降の前に区切り文字を付けます
-                    json.append("{\"title\":\"").append(escapeJson(todo.title)); // タイトルをJSON文字列として追加します
-                    json.append("\",\"done\":").append(todo.done).append("}"); // 完了状態をJSONの真偽値として追加します
-                } // 全TodoのJSON化を終えます
-                json.append("]"); // JSON配列を閉じます
-                send(exchange, 200, "application/json", json.toString()); // charsetなしのJSONレスポンスを返します
-            } catch (SQLException e) { // データベースエラーを受け取ります
-                send(exchange, 500, "text/plain; charset=UTF-8", "データベースエラー: " + e.getMessage()); // サーバーエラーを返します
-            } // 例外処理を終えます
-        }); // Todo一覧APIの入口を登録します
         server.createContext("/", exchange -> { // ★
             String path = exchange.getRequestURI().getPath(); // ★
             String method = exchange.getRequestMethod(); // ★
@@ -170,26 +152,6 @@ public class App { // ★
     static String escapeHtml(String value) { // ★
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;"); // ★
     }
-
-    static String escapeJson(String value) { // 文字列を安全なJSON文字列の内容へ変換します
-        StringBuilder escaped = new StringBuilder(); // エスケープ後の文字列を組み立てます
-        for (int i = 0; i < value.length(); i++) { // 文字列を1文字ずつ確認します
-            char c = value.charAt(i); // 現在の文字を取得します
-            switch (c) { // JSONで特別扱いする文字を判定します
-                case '"': escaped.append("\\\""); break; // 二重引用符をエスケープします
-                case '\\': escaped.append("\\\\"); break; // バックスラッシュをエスケープします
-                case '\b': escaped.append("\\b"); break; // バックスペースをエスケープします
-                case '\f': escaped.append("\\f"); break; // 改ページをエスケープします
-                case '\n': escaped.append("\\n"); break; // 改行をエスケープします
-                case '\r': escaped.append("\\r"); break; // 復帰をエスケープします
-                case '\t': escaped.append("\\t"); break; // タブをエスケープします
-                default: // それ以外の文字を処理します
-                    if (c < 0x20 || Character.isSurrogate(c)) escaped.append(String.format("\\u%04x", (int) c)); // 制御文字とサロゲートをUnicodeエスケープします
-                    else escaped.append(c); // JSONでそのまま使える文字を追加します
-            } // 文字ごとの処理を終えます
-        } // 全文字の処理を終えます
-        return escaped.toString(); // JSON用にエスケープした文字列を返します
-    } // JSON文字列エスケープ処理を終えます
 
     static class Todo { // ★
         final int id;
